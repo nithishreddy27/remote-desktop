@@ -15,7 +15,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 540,
     backgroundColor: '#0e1014',
-    title: 'Remote Desktop',
+    title: 'scsh',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -120,6 +120,12 @@ ipcMain.on('remote-platform', (_e, platform) => input.setRemotePlatform(platform
 ipcMain.on('release-input', () => input.releaseAll());
 
 ipcMain.on('set-fullscreen', (_e, on) => win && win.setFullScreen(!!on));
+
+// Excludes this window from screen captures and recordings (WDA_EXCLUDEFROMCAPTURE
+// on Windows, NSWindowSharingNone on macOS). The window stays fully visible on
+// this computer; it only shows up blank in anything that captures the screen,
+// so the app doesn't appear when you share your screen in a meeting.
+ipcMain.on('set-content-protection', (_e, on) => win && win.setContentProtection(!!on));
 
 // --- Updates -------------------------------------------------------------------
 

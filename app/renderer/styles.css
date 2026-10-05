@@ -208,6 +208,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .dialog h3 { margin: 0; font-size: 17px; }
 .dialog-foot { display: flex; justify-content: flex-end; gap: 10px; }
 .dialog-foot .reset { margin-right: auto; }
+.field-note { color: var(--muted); font-size: 12px; margin: -6px 0 0; }
 
 .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
 .picker-item {

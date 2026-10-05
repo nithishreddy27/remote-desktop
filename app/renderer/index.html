@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:; connect-src ws: wss:">
-  <title>Remote Desktop</title>
+  <title>scsh</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar" id="topbar">
     <div class="brand">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
-      <span>Remote Desktop</span>
+      <span>scsh</span>
     </div>
     <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -160,6 +160,12 @@
           <select id="set-fps"><option>15</option><option>24</option><option>30</option><option>60</option></select>
         </label>
       </div>
+      <label class="switch">
+        <input type="checkbox" id="set-hide-capture">
+        <span class="track"></span>
+        <span>Hide this app from screen sharing &amp; recordings</span>
+      </label>
+      <small class="field-note">Keeps the scsh window out of what you share in meetings (Zoom, Teams, Meet). It stays visible on your own screen.</small>
       <p id="settings-error" class="notice error" hidden></p>
       <div class="dialog-foot">
         <button type="button" id="settings-reset" class="btn ghost reset">Reset to defaults</button>

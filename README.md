@@ -1,4 +1,4 @@
-# Remote Desktop
+# scsh
 
 Share your screen with anyone, or control another computer, using a one-time access code.
 It works like Chrome Remote Desktop: the person sharing reads out a 9-digit code, the
@@ -10,15 +10,15 @@ Get the latest version from the **[Releases page](https://github.com/nithishredd
 
 | Platform | File |
 | --- | --- |
-| Windows 10/11 | `Remote-Desktop-Setup-x.y.z.exe` |
-| macOS (Apple Silicon) | `Remote-Desktop-x.y.z-arm64.dmg` |
-| Linux | `Remote-Desktop-x.y.z-x86_64.AppImage` |
+| Windows 10/11 | `scsh-Setup-x.y.z.exe` |
+| macOS (Apple Silicon) | `scsh-x.y.z-arm64.dmg` |
+| Linux | `scsh-x.y.z-x86_64.AppImage` |
 
 The app isn't code-signed yet, so your system will warn you the first time:
 - **Windows:** "Windows protected your PC" → **More info** → **Run anyway**.
 - **macOS:** right-click the app → **Open** → **Open**. To share your screen, also allow
   *Screen Recording* and *Accessibility* in System Settings → Privacy & Security.
-- **Linux:** `chmod +x Remote-Desktop-*.AppImage` and run it.
+- **Linux:** `chmod +x scsh-*.AppImage` and run it.
 
 Windows and Linux builds update themselves automatically.
 
@@ -40,7 +40,7 @@ The toolbar shows resolution, fps, bitrate, latency, and whether the connection 
 **Good to know:**
 - On Windows, the viewer can't control windows that run as administrator (Task Manager,
   installers, admin terminals). If control seems to freeze, click a normal window on the
-  shared computer, or run Remote Desktop as administrator there.
+  shared computer, or run scsh as administrator there.
 - Ctrl+Alt+Del and UAC prompts appear on Windows' secure desktop, which ordinary apps can't see or control.
 - One viewer at a time. No audio, clipboard sync or file transfer yet.
 

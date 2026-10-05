@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('rd', {
   setRemotePlatform: (platform) => ipcRenderer.send('remote-platform', platform),
   releaseInput: () => ipcRenderer.send('release-input'),
   setFullscreen: (on) => ipcRenderer.send('set-fullscreen', on),
+  setContentProtection: (on) => ipcRenderer.send('set-content-protection', on),
 });

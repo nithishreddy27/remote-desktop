@@ -14,9 +14,13 @@ const DEFAULT_SETTINGS = {
   maxBitrateMbps: 8,
   maxFps: 30,
   name: '',
+  hideFromCapture: true,
 };
 
 const settings = loadSettings();
+
+// Apply the "hide from screen capture" preference as soon as the app loads.
+rd.setContentProtection(settings.hideFromCapture);
 
 function loadSettings() {
   try {
@@ -813,6 +817,7 @@ const settingsEls = {
   ice: $('#set-ice'),
   bitrate: $('#set-bitrate'),
   fps: $('#set-fps'),
+  hideCapture: $('#set-hide-capture'),
   error: $('#settings-error'),
 };
 
@@ -821,6 +826,7 @@ $('#settings-btn').addEventListener('click', () => {
   settingsEls.ice.value = settings.iceServers;
   settingsEls.bitrate.value = settings.maxBitrateMbps;
   settingsEls.fps.value = String(settings.maxFps);
+  settingsEls.hideCapture.checked = settings.hideFromCapture;
   notice(settingsEls.error, '');
   settingsEls.modal.hidden = false;
   settingsEls.server.focus();
@@ -833,6 +839,7 @@ $('#settings-reset').addEventListener('click', () => {
   settingsEls.ice.value = DEFAULT_SETTINGS.iceServers;
   settingsEls.bitrate.value = DEFAULT_SETTINGS.maxBitrateMbps;
   settingsEls.fps.value = String(DEFAULT_SETTINGS.maxFps);
+  settingsEls.hideCapture.checked = DEFAULT_SETTINGS.hideFromCapture;
 });
 
 settingsEls.form.addEventListener('submit', (e) => {
@@ -853,6 +860,8 @@ settingsEls.form.addEventListener('submit', (e) => {
   settings.iceServers = settingsEls.ice.value.trim();
   settings.maxBitrateMbps = Math.min(50, Math.max(1, Number(settingsEls.bitrate.value) || 8));
   settings.maxFps = Number(settingsEls.fps.value) || 30;
+  settings.hideFromCapture = settingsEls.hideCapture.checked;
+  rd.setContentProtection(settings.hideFromCapture);
   saveSettings();
   settingsEls.modal.hidden = true;
 });
