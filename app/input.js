@@ -25,14 +25,6 @@ try {
 const pressedKeys = new Set();
 const pressedButtons = new Set();
 let remotePlatform = null;
-let blocked = false;
-let onBlockedChange = () => {};
-
-function setBlocked(value) {
-  if (value === blocked) return;
-  blocked = value;
-  onBlockedChange(blocked);
-}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -88,11 +80,7 @@ function releaseAll() {
   pressedButtons.clear();
 }
 
-function setBlockedListener(fn) {
-  onBlockedChange = fn;
-}
-
-module.exports = { status, handle, releaseAll, setRemotePlatform, setBlockedListener };
+module.exports = { status, handle, releaseAll, setRemotePlatform };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -158,17 +146,13 @@ function createWin32Backend() {
     [0x0080, 0x0100, 2], // XBUTTON2 (forward)
   ];
 
-  // SendInput returns 0 when Windows (UIPI) blocks the input, which happens
-  // whenever the foreground window runs as administrator and we don't.
-  const send = (input) => setBlocked(SendInput(1, input, INPUT_SIZE) === 0);
-
-  const mouse = (flags, data = 0) => send({
+  const mouse = (flags, data = 0) => SendInput(1, {
     type: INPUT_MOUSE, u: { mi: { dx: 0, dy: 0, mouseData: data, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
-  });
+  }, INPUT_SIZE);
 
-  const keyboard = (vk, scan, flags) => send({
+  const keyboard = (vk, scan, flags) => SendInput(1, {
     type: INPUT_KEYBOARD, u: { ki: { wVk: vk, wScan: scan, dwFlags: flags, time: 0, dwExtraInfo: 0 } },
-  });
+  }, INPUT_SIZE);
 
   return {
     move(dip) {

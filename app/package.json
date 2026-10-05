@@ -8,7 +8,8 @@
     "dev": "electron . --dev",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win --x64"
+    "dist:win": "electron-builder --win --x64",
+    "release": "electron-builder --publish always"
   },
   "author": "NR",
   "license": "MIT",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@nut-tree-fork/libnut": "^4.2.6",
+    "electron-updater": "^6.8.9",
     "koffi": "^3.3.2"
   },
   "productName": "Remote Desktop",
@@ -36,21 +38,60 @@
       "node_modules/@nut-tree-fork/**"
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Remote-Desktop-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
       "category": "public.app-category.utilities",
+      "artifactName": "Remote-Desktop-${version}-${arch}.${ext}",
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "Remote Desktop needs to record your screen so you can share it."
       }
     },
     "linux": {
-      "target": "AppImage"
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "artifactName": "Remote-Desktop-${version}-${arch}.${ext}"
+    },
+    "directories": {
+      "buildResources": "build"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "nithishreddy27",
+      "repo": "remote-desktop",
+      "releaseType": "draft"
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nithishreddy27/remote-desktop.git"
+  },
+  "homepage": "https://github.com/nithishreddy27/remote-desktop"
 }

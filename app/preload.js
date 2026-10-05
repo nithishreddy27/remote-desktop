@@ -11,7 +11,4 @@ contextBridge.exposeInMainWorld('rd', {
   setRemotePlatform: (platform) => ipcRenderer.send('remote-platform', platform),
   releaseInput: () => ipcRenderer.send('release-input'),
   setFullscreen: (on) => ipcRenderer.send('set-fullscreen', on),
-  isElevated: () => ipcRenderer.invoke('is-elevated'),
-  relaunchAsAdmin: () => ipcRenderer.invoke('relaunch-admin'),
-  onInputBlocked: (fn) => ipcRenderer.on('input-blocked', (_e, blocked) => fn(blocked)),
 });

@@ -1,0 +1,78 @@
+# Builds installers for Windows, macOS and Linux and publishes them as a GitHub
+# Release whenever a version tag is pushed:
+#
+#   1. bump "version" in app/package.json (e.g. 1.0.1) and commit
+#   2. git tag v1.0.1 && git push origin main --tags
+#
+# Set the repository variable SERVER_URL (Settings → Secrets and variables →
+# Actions → Variables) to your signaling server, e.g. wss://your-app.up.railway.app
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag matches app version
+        run: |
+          version=$(node -p "require('./app/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match app/package.json version $version"
+            exit 1
+          fi
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "Remote Desktop $GITHUB_REF_NAME" --generate-notes
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Point the app at the production server
+        if: ${{ vars.SERVER_URL != '' }}
+        env:
+          SERVER_URL: ${{ vars.SERVER_URL }}
+        run: |
+          cat > renderer/config.js <<JS
+          window.RD_CONFIG = {
+            serverUrl: '${SERVER_URL}',
+          };
+          JS
+      - name: Build and upload installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --publish always
+
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest

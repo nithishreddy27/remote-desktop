@@ -5,9 +5,12 @@ const $ = (sel) => document.querySelector(sel);
 // ===========================================================================
 // Settings
 
+const CONFIG = window.RD_CONFIG || {};
+const FALLBACK_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
+
 const DEFAULT_SETTINGS = {
-  serverUrl: 'ws://localhost:8080',
-  iceServers: JSON.stringify([{ urls: 'stun:stun.l.google.com:19302' }], null, 2),
+  serverUrl: CONFIG.serverUrl || 'ws://localhost:8080',
+  iceServers: '', // extra ICE servers on top of the ones the server provides
   maxBitrateMbps: 8,
   maxFps: 30,
   name: '',
@@ -23,16 +26,29 @@ function loadSettings() {
   }
 }
 
+// Only values that differ from the defaults are stored, so changing a default
+// (e.g. the server URL) in a new release reaches existing users too.
 function saveSettings() {
-  try { localStorage.setItem('rd-settings', JSON.stringify(settings)); } catch { /* ignore */ }
+  const changed = {};
+  for (const [key, value] of Object.entries(settings)) {
+    if (value !== DEFAULT_SETTINGS[key]) changed[key] = value;
+  }
+  try { localStorage.setItem('rd-settings', JSON.stringify(changed)); } catch { /* ignore */ }
 }
 
-function iceServers() {
+function userIceServers() {
   try {
     const list = JSON.parse(settings.iceServers);
     if (Array.isArray(list)) return list;
   } catch { /* fall through */ }
-  return JSON.parse(DEFAULT_SETTINGS.iceServers);
+  return [];
+}
+
+// ICE servers for a session: the server's (incl. short-lived TURN credentials)
+// plus any the user configured.
+function rtcConfig(serverIce) {
+  const list = [...(Array.isArray(serverIce) ? serverIce : []), ...userIceServers()];
+  return { iceServers: list.length ? list : FALLBACK_ICE };
 }
 
 // ===========================================================================
@@ -187,7 +203,7 @@ async function startSharingInner() {
       'code-expired': () => wsSend(host.ws, { type: 'host' }),
       'join-request': onJoinRequest,
       'join-cancelled': () => setHostView('waiting', 'Waiting for someone to connect…'),
-      paired: () => startHostPeer().catch((err) => endHostSession(`Connection error: ${err.message}`)),
+      paired: (m) => startHostPeer(m.iceServers).catch((err) => endHostSession(`Connection error: ${err.message}`)),
       signal: (m) => applySignal(host, m.data).catch((err) => console.error('[host] signal', err)),
       'peer-left': () => endHostSession('The viewer disconnected.'),
       error: (m) => notice(hostEls.notice, m.message, 'error'),
@@ -239,12 +255,12 @@ async function onJoinRequest(m) {
   if (!accept) setHostView('waiting', 'Waiting for someone to connect…');
 }
 
-async function startHostPeer() {
+async function startHostPeer(serverIce) {
   clearInterval(host.expiryTimer);
   setHostView('waiting', `Connecting to ${host.viewerName}…`);
   hostEls.expiry.textContent = '';
 
-  const pc = new RTCPeerConnection({ iceServers: iceServers() });
+  const pc = new RTCPeerConnection(rtcConfig(serverIce));
   host.pc = pc;
   host.pendingIce = [];
 
@@ -451,7 +467,7 @@ async function connect() {
   try {
     ws = await openSignaling({
       waiting: () => setViewerBusy('Waiting for the other person to accept…'),
-      accepted: startViewerPeer,
+      accepted: (m) => startViewerPeer(m.iceServers),
       rejected: (m) => endViewerSession(m.reason, 'error'),
       signal: (m) => applySignal(viewer, m.data).catch((err) => endViewerSession(`Connection error: ${err.message}`, 'error')),
       'peer-left': () => endViewerSession('The other computer ended the session.'),
@@ -476,9 +492,9 @@ async function connect() {
   wsSend(ws, { type: 'join', code, name });
 }
 
-function startViewerPeer() {
+function startViewerPeer(serverIce) {
   setViewerBusy('Connecting to the remote computer…');
-  const pc = new RTCPeerConnection({ iceServers: iceServers() });
+  const pc = new RTCPeerConnection(rtcConfig(serverIce));
   viewer.pc = pc;
   viewer.pendingIce = [];
   viewer.hostAllowsControl = true;
@@ -812,6 +828,13 @@ $('#settings-btn').addEventListener('click', () => {
 
 $('#settings-cancel').addEventListener('click', () => { settingsEls.modal.hidden = true; });
 
+$('#settings-reset').addEventListener('click', () => {
+  settingsEls.server.value = DEFAULT_SETTINGS.serverUrl;
+  settingsEls.ice.value = DEFAULT_SETTINGS.iceServers;
+  settingsEls.bitrate.value = DEFAULT_SETTINGS.maxBitrateMbps;
+  settingsEls.fps.value = String(DEFAULT_SETTINGS.maxFps);
+});
+
 settingsEls.form.addEventListener('submit', (e) => {
   e.preventDefault();
   const url = settingsEls.server.value.trim();
@@ -820,7 +843,7 @@ settingsEls.form.addEventListener('submit', (e) => {
     return;
   }
   try {
-    const parsed = JSON.parse(settingsEls.ice.value);
+    const parsed = JSON.parse(settingsEls.ice.value.trim() || '[]');
     if (!Array.isArray(parsed)) throw new Error();
   } catch {
     notice(settingsEls.error, 'ICE servers must be a JSON array, e.g. [{"urls":"stun:stun.l.google.com:19302"}]', 'error');

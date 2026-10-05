@@ -2,40 +2,11 @@ const {
   app, BrowserWindow, ipcMain, desktopCapturer, screen, dialog, Menu, systemPreferences,
 } = require('electron');
 const path = require('path');
-const { execFile } = require('child_process');
 const input = require('./input');
 
 let win = null;
 let sharedDisplayId = null;
 let sharedBounds = null;
-
-input.setBlockedListener((blocked) => {
-  if (win) win.webContents.send('input-blocked', blocked);
-});
-
-// "net session" only succeeds from an elevated process.
-function isElevated() {
-  if (process.platform !== 'win32') return Promise.resolve(true);
-  return new Promise((resolve) => {
-    execFile('net', ['session'], { windowsHide: true }, (err) => resolve(!err));
-  });
-}
-
-// Relaunches this app elevated via a UAC prompt. Resolves false if the user
-// declines the prompt (the current instance keeps running).
-function relaunchAsAdmin() {
-  const quote = (s) => `'${String(s).replace(/'/g, "''")}'`;
-  const args = app.isPackaged ? process.argv.slice(1) : [app.getAppPath(), ...process.argv.slice(2)];
-  const argList = args.length ? ` -ArgumentList ${args.map((a) => quote(`"${a}"`)).join(',')}` : '';
-  const command = `Start-Process -FilePath ${quote(process.execPath)}${argList} -Verb RunAs`;
-  return new Promise((resolve) => {
-    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true }, (err) => {
-      if (err) return resolve(false);
-      resolve(true);
-      setTimeout(() => app.quit(), 300);
-    });
-  });
-}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -120,10 +91,6 @@ ipcMain.handle('input-status', () => {
   return status;
 });
 
-ipcMain.handle('is-elevated', () => isElevated());
-
-ipcMain.handle('relaunch-admin', () => relaunchAsAdmin());
-
 ipcMain.handle('confirm-viewer', async (_e, name) => {
   if (!win) return false;
   if (win.isMinimized()) win.restore();
@@ -154,6 +121,18 @@ ipcMain.on('release-input', () => input.releaseAll());
 
 ipcMain.on('set-fullscreen', (_e, on) => win && win.setFullScreen(!!on));
 
+// --- Updates -------------------------------------------------------------------
+
+// Downloads new releases from GitHub in the background and installs them on
+// quit. macOS is skipped: unsigned Mac apps can't auto-update.
+function checkForUpdates() {
+  if (!app.isPackaged || process.platform === 'darwin') return;
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    console.error('[updater]', err.message);
+  });
+}
+
 // --- App lifecycle -------------------------------------------------------------
 
 app.whenReady().then(() => {
@@ -164,6 +143,7 @@ app.whenReady().then(() => {
     screen.on(evt, refreshSharedBounds);
   }
   createWindow();
+  checkForUpdates();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

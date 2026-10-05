@@ -1,0 +1,19 @@
+# Fly.io config. Run `fly launch --copy-config --no-deploy` in this folder, then `fly deploy`.
+app = "remote-desktop-signal"
+primary_region = "iad"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep one machine running: a stopped machine would drop hosts waiting for a viewer.
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 5000
+    hard_limit = 10000
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
