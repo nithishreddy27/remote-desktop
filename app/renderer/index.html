@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:; connect-src ws: wss:">
+  <title>Remote Desktop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+      <span>Remote Desktop</span>
+    </div>
+    <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <main id="home" class="home">
+    <!-- Host -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M9 10l3-3 3 3M12 7v6"/></svg>
+        </div>
+        <div>
+          <h2>Share this screen</h2>
+          <p>Generate a one-time access code and give it to the person you want to let in.</p>
+        </div>
+      </div>
+
+      <div id="host-idle" class="card-body">
+        <button id="share-btn" class="btn primary">Generate code</button>
+      </div>
+
+      <div id="host-waiting" class="card-body" hidden>
+        <div class="label">Access code</div>
+        <div class="code-row">
+          <div id="host-code" class="code">··· ··· ···</div>
+          <button id="copy-btn" class="btn small ghost">Copy</button>
+        </div>
+        <div id="host-status" class="status"><span class="spinner"></span><span id="host-status-text">Waiting for someone to connect…</span></div>
+        <div id="code-expiry" class="muted small-text"></div>
+      </div>
+
+      <div id="host-connected" class="card-body" hidden>
+        <div class="status live"><span class="dot"></span><span><strong id="viewer-name"></strong> is connected to this computer</span></div>
+        <label class="switch">
+          <input type="checkbox" id="allow-control" checked>
+          <span class="track"></span>
+          <span>Allow mouse and keyboard control</span>
+        </label>
+        <button id="kick-btn" class="btn">Disconnect viewer</button>
+      </div>
+
+      <div id="host-footer" class="card-foot" hidden>
+        <button id="stop-btn" class="btn danger">Stop sharing</button>
+      </div>
+      <p id="host-notice" class="notice" hidden></p>
+    </section>
+
+    <!-- Viewer -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M9 10h6M12 7l3 3-3 3"/></svg>
+        </div>
+        <div>
+          <h2>Access a computer</h2>
+          <p>Enter the access code shown on the computer you want to connect to.</p>
+        </div>
+      </div>
+
+      <form id="connect-form" class="card-body" autocomplete="off">
+        <label class="field">
+          <span>Your name</span>
+          <input id="name-input" maxlength="40" placeholder="Shown to the other person">
+        </label>
+        <label class="field">
+          <span>Access code</span>
+          <input id="code-input" class="code-input" inputmode="numeric" maxlength="11" placeholder="123 456 789">
+        </label>
+        <div class="row">
+          <button type="submit" id="connect-btn" class="btn primary">Connect</button>
+          <button type="button" id="cancel-btn" class="btn ghost" hidden>Cancel</button>
+        </div>
+        <div id="viewer-status" class="status" hidden><span class="spinner"></span><span id="viewer-status-text"></span></div>
+      </form>
+      <p id="viewer-notice" class="notice" hidden></p>
+    </section>
+  </main>
+
+  <!-- Remote session (viewer) -->
+  <section id="session" class="session" hidden>
+    <div class="toolbar" id="toolbar">
+      <div class="tb-group">
+        <span class="dot"></span>
+        <span class="tb-title">Remote computer</span>
+        <span id="stats" class="stats"></span>
+      </div>
+      <div class="tb-group">
+        <span id="viewonly-badge" class="badge" hidden>View only</span>
+        <label class="switch compact" title="Send your mouse and keyboard to the remote computer">
+          <input type="checkbox" id="control-toggle" checked>
+          <span class="track"></span>
+          <span>Control</span>
+        </label>
+        <div class="menu-wrap">
+          <button id="keys-btn" class="btn small ghost">Send keys ▾</button>
+          <div id="keys-menu" class="menu" hidden>
+            <button data-combo="MetaLeft">Windows / Command key</button>
+            <button data-combo="AltLeft+Tab">Alt + Tab</button>
+            <button data-combo="ControlLeft+ShiftLeft+Escape">Ctrl + Shift + Esc</button>
+            <button data-combo="MetaLeft+KeyD">Show desktop (Win + D)</button>
+            <button data-combo="PrintScreen">Print Screen</button>
+          </div>
+        </div>
+        <button id="fullscreen-btn" class="btn small ghost" title="Ctrl + Alt + Enter">Full screen</button>
+        <button id="disconnect-btn" class="btn small danger">Disconnect</button>
+      </div>
+    </div>
+    <div id="surface" class="surface" tabindex="0">
+      <video id="remote-video" autoplay playsinline muted></video>
+      <div id="overlay" class="overlay" hidden><span class="spinner"></span><span id="overlay-text"></span></div>
+    </div>
+  </section>
+
+  <!-- Screen picker -->
+  <div id="picker-modal" class="modal" hidden>
+    <div class="dialog wide">
+      <h3>Choose a screen to share</h3>
+      <div id="picker-grid" class="picker-grid"></div>
+      <div class="dialog-foot"><button id="picker-cancel" class="btn ghost">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings-modal" class="modal" hidden>
+    <form id="settings-form" class="dialog">
+      <h3>Settings</h3>
+      <label class="field">
+        <span>Signaling server URL</span>
+        <input id="set-server" placeholder="wss://your-server.example.com" required>
+        <small>Both computers must use the same server.</small>
+      </label>
+      <label class="field">
+        <span>ICE servers (JSON)</span>
+        <textarea id="set-ice" rows="5" spellcheck="false"></textarea>
+        <small>Add a TURN server here if connections between different networks fail.</small>
+      </label>
+      <div class="row">
+        <label class="field">
+          <span>Max bitrate (Mbps)</span>
+          <input id="set-bitrate" type="number" min="1" max="50" step="1">
+        </label>
+        <label class="field">
+          <span>Max frame rate</span>
+          <select id="set-fps"><option>15</option><option>24</option><option>30</option><option>60</option></select>
+        </label>
+      </div>
+      <p id="settings-error" class="notice error" hidden></p>
+      <div class="dialog-foot">
+        <button type="button" id="settings-cancel" class="btn ghost">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

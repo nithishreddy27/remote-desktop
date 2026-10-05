@@ -1,0 +1,56 @@
+{
+  "name": "remote-desktop",
+  "version": "1.0.0",
+  "description": "Share your screen and control computers remotely over WebRTC",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win --x64"
+  },
+  "author": "NR",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "@nut-tree-fork/libnut": "^4.2.6",
+    "koffi": "^3.3.2"
+  },
+  "productName": "Remote Desktop",
+  "build": {
+    "appId": "com.nr.remotedesktop",
+    "productName": "Remote Desktop",
+    "files": [
+      "main.js",
+      "preload.js",
+      "input.js",
+      "renderer/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**",
+      "node_modules/@nut-tree-fork/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.utilities",
+      "extendInfo": {
+        "NSScreenCaptureUsageDescription": "Remote Desktop needs to record your screen so you can share it."
+      }
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
