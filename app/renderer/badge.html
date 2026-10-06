@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self'">
+  <style>
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
+      font: 13px/1.2 "Segoe UI", system-ui, -apple-system, sans-serif; user-select: none; cursor: default; }
+    .bar {
+      display: flex; align-items: center; gap: 10px; height: 100%;
+      padding: 0 8px 0 14px; box-sizing: border-box;
+      background: #171a21ee; color: #e8eaef;
+      border: 1px solid #2a2f3a; border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.4);
+      -webkit-app-region: drag;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #ef5b5b; flex: none;
+      box-shadow: 0 0 0 4px rgba(239,91,91,.22); animation: pulse 1.8s ease-in-out infinite; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(239,91,91,0); } }
+    .text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .text b { font-weight: 600; }
+    button {
+      -webkit-app-region: no-drag; flex: none;
+      border: 1px solid #2a2f3a; border-radius: 7px; padding: 5px 10px;
+      font: 500 12px inherit; cursor: pointer; background: #1f232c; color: #e8eaef;
+    }
+    button:hover { border-color: #5f6878; }
+    button.stop { background: rgba(239,91,91,.16); border-color: transparent; color: #ef5b5b; }
+    button.stop:hover { background: #ef5b5b; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <span class="dot"></span>
+    <span class="text" id="text"><b>scsh</b> — your screen is being shared</span>
+    <button id="show">Show</button>
+    <button id="stop" class="stop">Stop</button>
+  </div>
+  <script src="badge.js"></script>
+</body>
+</html>

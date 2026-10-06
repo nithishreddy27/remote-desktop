@@ -1,12 +1,20 @@
 const {
-  app, BrowserWindow, ipcMain, desktopCapturer, screen, dialog, Menu, systemPreferences,
+  app, BrowserWindow, ipcMain, desktopCapturer, screen, dialog, Menu, systemPreferences, Tray, nativeImage,
 } = require('electron');
 const path = require('path');
 const input = require('./input');
 
 let win = null;
+let tray = null;
+let badge = null;
 let sharedDisplayId = null;
 let sharedBounds = null;
+// True while a viewer is actively connected: the main window is hidden to a tray
+// icon plus an on-screen badge. The badge stays visible on this computer (so the
+// person here knows their screen is being shared and can stop it) but is excluded
+// from screen capture, so it doesn't appear in the shared video or a meeting share.
+let inSession = false;
+let lastStatus = { status: 'your screen is being shared' };
 
 function createWindow() {
   win = new BrowserWindow({
@@ -26,10 +34,111 @@ function createWindow() {
   });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (process.argv.includes('--dev')) win.webContents.openDevTools({ mode: 'detach' });
+  // Closing the window while a viewer is connected hides it to the tray instead
+  // of quitting, so the session (and its visible badge) keeps running.
+  win.on('close', (e) => {
+    if (inSession) {
+      e.preventDefault();
+      hideMainWindow();
+    }
+  });
   win.on('closed', () => {
     input.releaseAll();
     win = null;
   });
+}
+
+// --- Sharing session: tray + on-screen badge -----------------------------------
+
+function trayImage() {
+  const img = nativeImage.createFromPath(path.join(__dirname, 'renderer', 'tray.png'));
+  return img.isEmpty() ? img : img.resize({ width: 16, height: 16 });
+}
+
+function showMainWindow() {
+  if (!win) return;
+  win.setSkipTaskbar(false);
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+function hideMainWindow() {
+  if (!win) return;
+  win.hide();
+  win.setSkipTaskbar(true);
+}
+
+function createBadge() {
+  badge = new BrowserWindow({
+    width: 340,
+    height: 44,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'badge-preload.js'),
+      contextIsolation: true,
+      sandbox: true,
+    },
+  });
+  // The whole point of the badge: visible here, absent from screen captures.
+  badge.setContentProtection(true);
+  badge.setAlwaysOnTop(true, 'screen-saver');
+  badge.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  badge.webContents.on('did-finish-load', () => badge.webContents.send('badge-status', lastStatus));
+  badge.loadFile(path.join(__dirname, 'renderer', 'badge.html'));
+  positionBadge();
+}
+
+function positionBadge() {
+  if (!badge) return;
+  const { workArea } = screen.getPrimaryDisplay();
+  const { width, height } = badge.getBounds();
+  badge.setBounds({
+    x: Math.round(workArea.x + (workArea.width - width) / 2),
+    y: workArea.y + 10,
+    width,
+    height,
+  });
+}
+
+function requestStop() {
+  if (win) win.webContents.send('stop-sharing-request');
+}
+
+function enterSession() {
+  if (inSession) return;
+  inSession = true;
+  hideMainWindow();
+  if (!tray) {
+    tray = new Tray(trayImage());
+    tray.setToolTip('scsh — your screen is being shared');
+    tray.on('click', showMainWindow);
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: 'Your screen is being shared', enabled: false },
+      { type: 'separator' },
+      { label: 'Show scsh', click: showMainWindow },
+      { label: 'Stop sharing', click: requestStop },
+    ]));
+  }
+  if (!badge) createBadge();
+  positionBadge();
+  badge.showInactive();
+}
+
+function exitSession() {
+  if (!inSession) return;
+  inSession = false;
+  if (tray) { tray.destroy(); tray = null; }
+  if (badge) badge.hide();
+  showMainWindow();
 }
 
 // --- Shared display bookkeeping --------------------------------------------
@@ -126,6 +235,20 @@ ipcMain.on('set-fullscreen', (_e, on) => win && win.setFullScreen(!!on));
 // this computer; it only shows up blank in anything that captures the screen,
 // so the app doesn't appear when you share your screen in a meeting.
 ipcMain.on('set-content-protection', (_e, on) => win && win.setContentProtection(!!on));
+
+// The renderer reports when a viewer is connected (active) or not.
+ipcMain.on('host-session', (_e, info) => {
+  if (info && info.active) {
+    lastStatus = { status: info.status || 'your screen is being shared' };
+    enterSession();
+    if (badge) badge.webContents.send('badge-status', lastStatus);
+  } else {
+    exitSession();
+  }
+});
+
+ipcMain.on('badge-stop', requestStop);
+ipcMain.on('badge-show', showMainWindow);
 
 // --- Updates -------------------------------------------------------------------
 

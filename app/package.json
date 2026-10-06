@@ -30,6 +30,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "badge-preload.js",
       "input.js",
       "renderer/**/*"
     ],

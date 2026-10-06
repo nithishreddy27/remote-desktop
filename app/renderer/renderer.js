@@ -153,7 +153,17 @@ function setHostView(view, statusText) {
   hostEls.connected.hidden = view !== 'connected';
   hostEls.footer.hidden = view === 'idle';
   if (statusText) hostEls.statusText.textContent = statusText;
+  // Hide the window to a tray icon + on-screen badge only while a viewer is
+  // actually connected. While waiting, the window stays up so the host can read
+  // the access code.
+  rd.hostSession({
+    active: view === 'connected',
+    status: `${host.viewerName || 'Someone'} is viewing & controlling your screen`,
+  });
 }
+
+// The host can stop sharing from the tray menu or the on-screen badge.
+rd.onStopSharingRequest(() => stopSharing('You stopped sharing.'));
 
 async function startSharing() {
   notice(hostEls.notice, '');

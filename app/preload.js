@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld('rd', {
   releaseInput: () => ipcRenderer.send('release-input'),
   setFullscreen: (on) => ipcRenderer.send('set-fullscreen', on),
   setContentProtection: (on) => ipcRenderer.send('set-content-protection', on),
+  hostSession: (info) => ipcRenderer.send('host-session', info),
+  onStopSharingRequest: (fn) => ipcRenderer.on('stop-sharing-request', () => fn()),
 });
